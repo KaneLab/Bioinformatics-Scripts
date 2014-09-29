@@ -57,8 +57,8 @@ sed "s;QQQQQ1;$path\/mappedReads_1.fastq;g" soap.config | sed "s;QQQQQ2;$path\/m
 soapdenovo2-63mer all -s soap.config.temp -K $kmer_value -R -o K${kmer_value} -z 150000 1>assembly.log 2>assembly.err
 
 #Move newly created files into own directory
-mkdir ${kmer_value}
-mv ${kmer_value}* ${kmer_value}/
+mkdir K${kmer_value}
+mv K${kmer_value}* K${kmer_value}/
 
 #####Legacy code that probably no longer works#####
 #soapdenovo2-63mer sparse_pregraph -s soap.config4 -K $kmer_value -R -o K$kmer_value -z 150000 > soaplog_sparsegraphK$kmer_value
