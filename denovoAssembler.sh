@@ -1,5 +1,7 @@
-# This is a complete workflow script that takes two whole genome shotgun .fastq files as input.  It generates a short-read
-# alignment map (.sam) of these short-reads aligned to the reference, with SOAP kmer value as input.
+# This is a complete chloroplast genome assembler that takes two whole genome shotgun .fastq files as input.  It generates a short-read
+# alignment map (.sam) of these short-reads aligned to the reference, with SOAP kmer value as input.  (NOTE!  This script can be used for
+# other assemblies, but the soapdenovo2-63mer step must be modified to change the estimated genome size.  It is currently set for chloroplast
+# size of 150000)
 
 # example usage (NOTE!  Input fastqs must be lacking their .fastq or .fq extention!):
 # bash denovoAssembler.sh I_cyaneum170_dan1_ATTCAGAA-CAGGACGT_L001_R1_001 I_cyaneum170_dan1_ATTCAGAA-CAGGACGT_L001_R2_001 Solanum_tuberosum.fasta 31
