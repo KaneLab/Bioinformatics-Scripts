@@ -1,0 +1,14 @@
+#
+git clone "[url of repository]"
+
+#Get list of things that have been modified.
+git status
+
+#Makes 'all' available for committing.  Can specify in argument what to add to commit list.
+git add -all
+
+#
+git commit -m "[comments]"
+
+#
+git push origin [branch]
