@@ -1,0 +1,729 @@
+---
+title: 'Compromised External Validity: Federally Produced Cannabis Does Not Reflect
+  Legal Markets'
+author: "Daniela Vergara"
+date: "January 11, 2017"
+output: pdf_document
+---
+
+Code below sets working directory (make sure to set your OWN working directory) and opens text files, appends packages used 
+```{r}
+setwd("")
+chemotypes = read.table("data_full_analysis_21122016.txt", sep="\t", header=T) #found in dryad
+head(chemotypes)
+table(chemotypes$origin)
+
+library(doBy)
+library(dplyr)
+library(purrr)
+library(car)
+
+
+#for PCA analysis
+chemo2 = read.table("for_pca_11042016.txt", sep="\t", header=T) #found in dryad
+chemo2
+head(chemo2)
+table(chemo2$origin)
+length(chemo2)
+tail(chemo2)
+
+
+chemo.active <- chemo2[, 2:7]
+chemo.active
+head(chemo.active)
+cannorigin <- chemo2[, 1]
+cannorigin
+
+```
+
+
+Code below shows the mean of the different cannabinoids
+```{r}
+summaryBy(comb_cbd ~ origin, data = chemotypes, FUN = list(mean), na.rm=T)
+summaryBy(comb_thc ~ origin, data = chemotypes, FUN = list(mean), na.rm=T)
+summaryBy(comb_cbc ~ origin, data = chemotypes, FUN = list(mean), na.rm=T)
+
+
+####another way to do it
+chemotypes %>% slice_rows("origin") %>% dmap(mean, na.rm=T)
+
+```
+
+
+Code below shows the sample size by location
+```{r}
+#################################sample_sizes#####################################################
+denver_all=subset(chemotypes, origin="Denver")
+head(denver_all)
+table(denver_all$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#1141         98        755        981        103 
+denver_NAs=subset(denver_all, comb_cbg!="NA")
+table(denver_NAs$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#992         96        481      981        103 
+denver_cbd=subset(denver_all, comb_cbd>=1)
+head(denver_cbd)
+table(denver_cbd$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#42         56        110        101          4 
+denver_cbd=subset(denver_all, comb_cbd>=1)
+
+mean(subset(denver_cbd, origin == "Denver")$comb_cbd)
+
+denver_cbn=subset(denver_all, comb_cbn>=1)
+head(denver_cbn)
+table(denver_cbn$origin)#no samples
+denver_thc=subset(denver_all, comb_thc>=1)
+head(denver_thc)
+table(denver_thc$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#1114         64        692        952        103 
+denver_cbg=subset(denver_all, comb_cbg>=1)
+head(denver_cbg)
+table(denver_cbg$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#98          1         41        259         12
+denver_thcv=subset(denver_all, comb_thcv>=1)
+head(denver_thcv)
+table(denver_thcv$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#12          0          6         21          1 
+denver_cbc=subset(denver_all, comb_cbc>=1)
+table(denver_cbc$origin)
+
+
+NIDA_all=subset(chemotypes, origin="NIDA")
+head(NIDA_all)
+NIDA_NAs=subset(NIDA_all,comb_thcv!="NA")
+table(NIDA_NAs$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#996         90        481        981        103 
+NIDA_NAs2=subset(NIDA_all,comb_cbc!="NA")
+table(NIDA_NAs2$origin)
+NIDA_cbd=subset(NIDA_all, comb_cbd>=1)
+head(NIDA_cbd)
+table(NIDA_cbd$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#42         56        110        101          4 
+NIDA_cbn=subset(NIDA_all, comb_cbn>=1)
+head(NIDA_cbn)
+table(NIDA_cbn$origin)#no samples
+NIDA_thc=subset(NIDA_all, comb_thc>=1)
+head(NIDA_thc)
+table(NIDA_thc$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#1118         64        692        952        103 
+NIDA_cbg=subset(NIDA_all, comb_cbg>=1)
+head(NIDA_cbg)
+table(NIDA_cbg$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#98          1         41        259         12
+NIDA_thcv=subset(NIDA_all, comb_thcv>=1)
+head(NIDA_thcv)
+table(NIDA_thcv$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#12          0          6         21          1 
+NIDA_cbc=subset(NIDA_all, comb_cbc>=1)
+table(NIDA_cbc$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#0          0          0          2          0
+
+NIDA_cbc1=subset(NIDA_all, comb_cbc>=1)
+table(NIDA_cbc$origin)
+
+thc_cbd_1=subset(chemotypes, comb_cbd>=1 & comb_thc>=1)
+thc_cbd_1
+head(thc_cbd_1)
+table(thc_cbd_1$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#21         24         77         81          4 
+write.table(thc_cbd_1, file="thc_cbd_1_18042016.txt", sep="\t")
+
+
+seattle=subset(chemotypes, origin="Seattle")
+head(seattle)
+seattle_1=subset(seattle, comb_cbd>=1)
+table(seattle_1$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#42         56        111        101          4 
+
+oakland=subset(chemotypes, origin="Oakland")
+head(oakland)
+oakland_1=subset(oakland, comb_cbc!="NA")
+table(oakland_1$origin)
+#Denver       NIDA    Oakland Sacramento    Seattle 
+#0         96        488        982          0 
+
+oakland_2=subset(oakland, comb_cbn!="NA")
+table(oakland_1$origin)
+```
+
+
+code below for figure 2, box and whiskers (with the samples that produce >1% of the cannabinoids)
+```{r}
+##########################################################################################################
+##########################################################################################################
+##########################################################################################################
+##########################################################################################################
+####################################box and whiskers >1########################
+#####################FIG 2
+
+
+par(mfrow=c(2,2))#,(mar=c(2,2,2,2)))
+#par(mar=c(5.1,4.1,4.1,2.1)
+
+boxplot(comb_cbd~origin,data=cbd, main="CBD Range by Location", 
+        xlab="Location", ylab="Percent CBD", cex.lab=1.2, ylim=c(0,25))
+
+plot(comb_thc~origin,data=thc, main="THC Range by Location", 
+     xlab="Location", ylab="Percent THC", cex.lab=1.2)
+
+boxplot(comb_cbg~origin,data=cbg, main="CBG Range by Location", 
+        xlab="Location", ylab="Percent CBG", cex.lab=1.2, ylim=c(0,4))
+
+boxplot(comb_thcv~origin,data=thcv, main="THCV Range by Location", 
+        xlab="Location", ylab="Percent THCV", cex.lab=1.2, ylim=c(0,4))
+
+par(mfrow=c(1,1))
+```
+
+
+
+code below for figure 3, CBD vs. THC (with the samples that produce >1% of the cannabinoids)
+```{r}
+####################################################################################################
+####################################################################################################
+####################################################################################################
+########################THC vs CBD >1 ##############################################################
+################ FIG 3
+
+chemo_1=read.table("thc_cbd_1_18042016.txt", sep="\t", header=T)
+head(chemo_1)
+
+cor.test(chemo_1$comb_thc,chemo_1$comb_cbd)
+
+pepe2=(chemo_1$comb_thc~chemo_1$comb_cbd)#, data=chemotypes)
+
+cannorigin10 <- chemo_1[, 1]
+cannorigin10
+cluster10 <- as.character(unique(chemo_1$origin))
+cluster10
+colvec10 <- c(rgb(red = 153, green = 255, blue = 51, maxColorValue = 255),
+              rgb(red = 0, green = 174, blue = 239, maxColorValue = 255),
+              rgb(red = 1, green = 1, blue = 1, maxColorValue = 255),
+              rgb(red = 141, green = 46, blue = 136, maxColorValue = 255), 
+              rgb(red = 255, green = 83, blue = 0, maxColorValue = 255)
+)
+
+
+colvec_ell10 <- c(rgb(red = 153, green = 255, blue = 51, maxColorValue = 255, alpha=50), 
+                  rgb(red = 0, green = 174, blue = 239, maxColorValue = 255, alpha = 50),
+                  rgb(red = 1, green = 1, blue = 1, maxColorValue = 255, alpha=50),
+                  rgb(red = 141, green = 46, blue = 136, maxColorValue = 255, alpha = 50), 
+                  rgb(red = 255, green = 83, blue = 0, maxColorValue = 255, alpha = 50)
+)
+
+
+
+colz10 <- rep(NA, length(cannorigin10))
+
+colz10[unique(cannorigin10)[1] == cannorigin10] <- colvec10[1]
+colz10[unique(cannorigin10)[2] == cannorigin10] <- colvec10[2]
+colz10[unique(cannorigin10)[3] == cannorigin10] <- colvec10[3]
+colz10[unique(cannorigin10)[4] == cannorigin10] <- colvec10[4]
+colz10[unique(cannorigin10)[5] == cannorigin10] <- colvec10[5]
+
+plot(pepe2, pch=19, main="THC vs CBD",
+     xlab="Percent CBD", ylab="Percent THC", col=colz10)
+legend("topright", cluster10, title = "Origin", col=colvec10, pch=19,inset = .05)
+
+
+DenX_1 <- (chemo_1$comb_cbd[unique(cannorigin10)[1] == cannorigin10])
+DenY_1 <- (chemo_1$comb_thc[unique(cannorigin10)[1] == cannorigin10])
+
+OakX_1 <- (chemo_1$comb_cbd[unique(cannorigin10)[2] == cannorigin10])
+OakY_1 <- (chemo_1$comb_thc[unique(cannorigin10)[2] == cannorigin10])
+
+SeaX_1 <- (chemo_1$comb_cbd[unique(cannorigin10)[3] == cannorigin10])
+SeaY_1 <- (chemo_1$comb_thc[unique(cannorigin10)[3] == cannorigin10])
+
+SacX_1 <- (chemo_1$comb_cbd[unique(cannorigin10)[4] == cannorigin10])
+SacY_1 <- (chemo_1$comb_thc[unique(cannorigin10)[4] == cannorigin10])
+
+NidaX_1 <- (chemo_1$comb_cbd[unique(cannorigin10)[5] == cannorigin10])
+NidaY_1 <- (chemo_1$comb_thc[unique(cannorigin10)[5] == cannorigin10])
+
+##
+ellf1_1 <- dataEllipse(DenX_1, DenY_1, draw = F)$`0.95`
+polygon(ellf1_1[,1], ellf1_1[,2], col=colvec_ell10[1], border = F)
+##
+ellf2_1 <- dataEllipse(OakX_1, OakY_1, draw = F)$`0.95`
+polygon(ellf2_1[,1], ellf2_1[,2], col=colvec_ell10[2], border = F)
+
+##
+ellf3_1 <- dataEllipse(SeaX_1, SeaY_1, draw = F)$`0.95`
+polygon(ellf3_1[,1], ellf3_1[,2], col=colvec_ell10[3], border = F)
+
+##
+ellf4_1 <- dataEllipse(SacX_1, SacY_1, draw = F)$`0.95`
+polygon(ellf4_1[,1], ellf4_1[,2], col=colvec_ell10[4], border = F)
+
+##
+ellf5_1 <- dataEllipse(NidaX_1, NidaY_1, draw = F)$`0.95`
+polygon(ellf5_1[,1], ellf5_1[,2], col=colvec_ell10[5], border = F)
+```
+
+
+code below for figure 4, PCA (PC1 vs. PC2) (with all data but just 3 locations)
+```{r}
+##########################################################################################################
+##########################################################################################################
+#########################################PCA ANALYSIS AND COLOR GRAPH ####################################
+##########################################################################################################
+#####              FIGURE 4 ##############################################################################
+
+
+par(mfrow=c(1,1))
+pca1 = prcomp(chemo.active, scale. = TRUE)
+pca1
+pca1$PC1
+summary(pca1)
+###Proportion of Variance 0.308 0.2232 0.1725 0.1482 0.09276 0.05537
+class(pca1$loadings)
+length(pca1$x[,1])
+pca1$x[,1]
+head(pca1$x[,1])
+
+length(pca1$x[,2])
+pca1$x[,2]
+head(pca1$x[,2])
+
+
+#((pca1$sdev)^20) / (sum(pca1$sdev^2))
+
+
+#get matrix of all PC vectors
+pcaMatrix <- paste(pca1$x[,1],pca1$x[,2],pca1$x[,3],pca1$x[,4],pca1$x[,5],pca1$x[,6])
+pcaMatrix
+head(pcaMatrix)
+#write.table(pcaMatrix, file = "PC_matrix_12022016.txt", sep="\t")
+
+pca1
+
+
+cluster <- as.character(unique(chemo2$origin))
+cluster
+colz <- rep(NA, length(cannorigin))
+
+colvec_ell <- c( rgb(red = 0, green = 174, blue = 239, maxColorValue = 255, alpha = 50), 
+             rgb(red = 141, green = 46, blue = 136, maxColorValue = 255, alpha = 50), 
+             rgb(red = 255, green = 83, blue = 0, maxColorValue = 255, alpha = 50)
+             )
+
+
+colvec <- c( rgb(red = 0, green = 174, blue = 239, maxColorValue = 255), 
+                 rgb(red = 141, green = 46, blue = 136, maxColorValue = 255), 
+                 rgb(red = 255, green = 83, blue = 0, maxColorValue = 255)
+)
+
+colz[unique(cannorigin)[1] == cannorigin] <- colvec[1]
+colz[unique(cannorigin)[2] == cannorigin] <- colvec[2]
+colz[unique(cannorigin)[3] == cannorigin] <- colvec[3]
+#sum(is.na(colz))
+par(mfrow=c(1,1))
+plot(pca1$x[,1], pca1$x[,2], col=colz, pch=19, xlim=c(-5, 6), ylim=c(-8, 4), 
+     xlab="PC1 (30.7% explained variation)", ylab="PC2 (22.4% explained variation)")
+legend("topright", cluster, inset = .05, title = "Origin", col=colvec, pch=19)
+
+
+##
+g1 <- pca1$x[unique(cannorigin)[1] == cannorigin,]
+ellg1 <- dataEllipse(g1[,1], g1[,2], draw = F)$`0.95`
+polygon(ellg1[,1], ellg1[,2], col=colvec_ell[1], border = F)
+##
+g2 <- pca1$x[unique(cannorigin)[2] == cannorigin,]
+ellg2 <- dataEllipse(g2[,1], g2[,2], draw = F)$`0.95`
+polygon(ellg2[,1], ellg2[,2], col=colvec_ell[2], border = F)
+##
+g3 <- pca1$x[unique(cannorigin)[3] == cannorigin,]
+ellg3 <- dataEllipse(g3[,1], g3[,2], draw = F)$`0.95`
+polygon(ellg3[,1], ellg3[,2], col=colvec_ell[3], border = F)
+
+points(pca1$x[,1], pca1$x[,2], col=colz, pch=19)
+points(km3$centers[,c("PC1", "PC2")], col=1, pch=15, cex=2)
+```
+
+
+code below for supplementary figure 1, box and whiskers and for the Ftests
+```{r}
+####################################################################################################
+####################################################################################################
+####################################################################################################
+#############################################Variances for CBD & THC > 1######################
+###########################FIG S1
+
+testvar=var.test(chemo_1$comb_thc,chemo_1$comb_cbd, ratio = 1)
+testvar ###F = 0.6378, num df = 206, denom df = 206, p-value = 0.001329
+summary(testvar)
+head(chemo_1)
+
+testvar2=var.test(thc_cbd_1$comb_thc,thc_cbd_1$comb_cbd, ratio = 1) ##same as lines above
+testvar2 ###F = 0.6378, num df = 206, denom df = 206, p-value = 0.001329
+head(thc_cbd_1)
+
+
+###F = 0.6378, num df = 206, denom df = 206, p-value = 0.001329
+TukeyHSD.aov(testvar)
+
+NIDA_2= subset(thc_cbd_1, origin == "NIDA")
+head(NIDA_2)
+
+denver_2= subset(thc_cbd_1, origin == "Denver")
+head(denver_2)
+
+
+testvar2=var.test(NIDA_2$ratio_thc.cbd,denver_2$ratio_thc.cbd, ratio = 1)
+testvar2
+
+testvar1=var.test(NIDA_1$ratio_thc.cbd,denver_1$ratio_thc.cbd, ratio = 1)
+testvar1
+###F = 0.1174, num df = 23, denom df = 20, p-value = 3.681e-06
+
+testvar2=var.test(NIDA_1$ratio_thc.cbd, seattle_1$ratio_thc.cbd, ratio = 1)
+testvar2
+###F = 0.191, num df = 23, denom df = 3, p-value = 0.01336
+
+testvar3=var.test(NIDA_1$ratio_thc.cbd, sacramento_1$ratio_thc.cbd, ratio = 1)
+testvar3
+###F = 0.0035, num df = 23, denom df = 80, p-value < 2.2e-16
+
+testvar4=var.test(NIDA_1$ratio_thc.cbd, oakland_1$ratio_thc.cbd, ratio = 1)
+testvar4
+###F = 0.0284, num df = 23, denom df = 76, p-value = 1.106e-13
+
+
+
+mean(subset(chemo_1, origin == "Denver")$ratio_thc.cbd)
+var(subset(chemo_1, origin == "Denver")$ratio_thc.cbd)
+
+summaryBy(ratio_thc.cbd ~ origin, data = chemo_1, FUN = list(mean, var, max, min, sd))
+
+
+aov_ratio <- aov(chemo_1$ratio_thc.cbd ~ chemo_1$origin)
+summary(aov_ratio)
+tablecomb_ratio=pairwise.t.test(chemo_1$ratio_thc.cbd,chemo_1$origin, p.adj = "bonf", data=chemo_1)
+tablecomb_ratio
+TukeyHSD(aov_ratio)
+
+boxplot(log(chemo_1$ratio_thc.cbd) ~ chemo_1$origin)
+summary(aov(log(chemo_1$ratio_thc.cbd) ~ chemo_1$origin))
+
+
+TukeyHSD(aov(log(chemo_1$ratio_thc.cbd) ~ chemo_1$origin))
+
+head(chemo_1)
+range(chemo_1$ratio_thc.cbd)
+```
+
+
+
+code below for supplementary figure 2, PCA (PC1 vs. PC2) and Kmeans clustering analysis
+```{r}
+#######################################kmeans clustering 
+######################## FIGURE S2######################################
+
+
+head(chemo.active)
+
+km1 = kmeans(chemo.active, 2, nstart=100)
+km1
+summary(km1)
+
+plot(chemo.active, col =(km1$cluster +1) , main="K-Means result with 2 clusters", pch=20, cex=2)
+
+nc <- NbClust(chemo.active, min.nc=2, max.nc=10, method="kmeans")
+nc1 <- NbClust(chemo.active, min.nc=1, max.nc=10, method="kmeans")
+nc1 <- NbClust(pctable, min.nc=2, max.nc=6, method="kmeans")
+
+(kc <- kmeans(chemo.active, 2))
+
+table(chemo.active$comb_cbd, kc$cluster)
+plot(chemo.active[c("comb_cbd", "comb_cbn", "comb_thc", "comb_cbg", "comb_thcv", "comb_cbc")], col=chemo_1$origin)
+points(kc$centers[,c("comb_cbd", "comb_cbn", "comb_thc", "comb_cbg", "comb_thcv", "comb_cbc")], col=1:8, pch=8, cex=2)
+
+
+km2 = kmeans(chemo.active, 2, nstart=100)
+km2
+plot(chemo.active, col =(km2$cluster +1) , main="K-Means result with 6 clusters", pch=20, cex=2)
+
+pctable = read.table("PC_matrix_08072016.txt", sep="\t", header=T)
+head(pctable)
+plot(pctable$PC1, pctable$PC2)
+
+km3 = kmeans(pctable, 2, nstart=100)
+km3
+plot(pctable, col =(km3$cluster +1) , main="K-Means result with 6 clusters", pch=19, cex=2)
+
+par(mfrow=c(1,1))
+
+
+colores <- rep(NA, length(km3$cluster))
+
+colorvector <- c( rgb(red = 96, green = 96, blue = 96, maxColorValue = 255), 
+             rgb(red = 255, green = 0, blue = 127, maxColorValue = 255) 
+)
+
+colores[unique(km3$cluster)[1] == km3$cluster] <- colorvector[1]
+colores[unique(km3$cluster)[2] == km3$cluster] <- colorvector[2]
+
+
+plot(pctable[c("PC1", "PC2")], col=colores, pch=19, xlim=c(-5, 6), ylim=c(-8, 4), 
+     xlab="PC1 (30.7% explained variation)", ylab="PC2 (22.4% explained variation)")
+points(km3$centers[,c("PC1", "PC2")], col=1, pch=15, cex=2)
+
+
+plot(pctable[c("PC1", "PC2")],  pch=(km3$cluster+14), col = "gray46", xlim=c(-5, 6), ylim=c(-8, 4), 
+     xlab="PC1 (30.7% explained variation)", ylab="PC2 (22.4% explained variation)")
+points(km3$centers[,c("PC1", "PC2")], col=1, pch=19, cex=2)
+
+par(mfrow=c(1,1))
+plot(pca1$x[,1], pca1$x[,2], col=colz, pch=19, xlim=c(-5, 6), ylim=c(-8, 4), 
+     xlab="PC1 (30.7% explained variation)", ylab="PC2 (22.4% explained variation)")
+legend("topright", cluster, inset = .05, title = "Origin", col=colvec, pch=19)
+```
+
+code below for Statistics on data that has THC and CBD >1% (both cannabinodis more than 1%)
+```{r}
+####################################################################################################
+####################################################################################################
+####################################################################################################
+#############################################ANOVAs for BOTH THC and CBD >1######################
+
+thc_cbd_1 <- chemotypes[ which( chemotypes$comb_thc >= 1 & chemotypes$comb_cbd >= 1) , ]
+thc_cbd_1
+summary(thc_cbd_1)
+
+
+aov_comb_cbd_1 <- aov(comb_cbd ~ origin, data=thc_cbd_1)
+aov_comb_cbd_1
+summary(aov_comb_cbd_1) # P <2.04e-14 ***
+TukeyHSD(aov_comb_cbd_1)
+tablecomb_cbd_1=pairwise.t.test(thc_cbd_1$comb_cbd, thc_cbd_1$origin, p.adj = "bonf", data=thc_cbd_1)
+tablecomb_cbd_1
+          ##Denver NIDA    Oakland Sacramento
+#NIDA       0.166  -       -       -         
+#Oakland    1.000  0.351   -       -         
+#Sacramento 0.001  7.0e-11 1.7e-11 -         
+#Seattle    1.000  0.368   1.000   1.000  
+
+aov_comb_thc_1 <- aov(comb_thc ~ origin, data=thc_cbd_1)
+aov_comb_thc_1
+summary(aov_comb_thc_1) # P 0.00221 **
+TukeyHSD(aov_comb_thc_1)
+tablecomb_thc_1=pairwise.t.test(thc_cbd_1$comb_thc, thc_cbd_1$origin, p.adj = "bonf", data=thc_cbd_1)
+tablecomb_thc_1
+            #Denver NIDA   Oakland Sacramento
+#NIDA       0.0048 -      -       -         
+#Oakland    0.2867 0.2783 -       -         
+#Sacramento 1.0000 0.0192 1.0000  -         
+#Seattle    1.0000 0.1200 0.9854  1.0000 
+
+
+head(chemo_1)
+
+
+NIDA_1= subset(chemo_1, origin == "NIDA")
+head(NIDA_1)
+
+nidaplot=NIDA_1$comb_thc~NIDA_1$comb_cbd
+plot(nidaplot,pch=19, xlim=c(1,16), ylim=c(1,8))
+nidamodel=lm(NIDA_1$comb_thc~NIDA_1$comb_cbd)
+abline(nidamodel, col="red")
+summary(nidamodel)
+cor.test(NIDA_1$comb_thc, NIDA_1$comb_cbd)#t = 3.6975, df = 22, p-value = 0.001258, r=0.6190813
+
+model <- lm(y ~ x, data = mydf)
+abline(model, col = "red")
+summary(model)
+
+
+
+denver_1= subset(chemo_1, origin == "Denver")
+head(denver_1)
+
+oakland_1= subset(chemo_1, origin == "Oakland")
+head(oakland_1)
+
+sacramento_1= subset(chemo_1, origin == "Sacramento")
+head(sacramento_1)
+
+seattle_1= subset(chemo_1, origin == "Seattle")
+head(seattle_1)
+```
+
+
+
+code below for Statistics on data that has cannabinoids with more than 1%
+```{r}
+##########################################################################################################
+##########################################################################################################
+##########################################################################################################
+##########################################################################################################
+              ############################### ANOVAS WITH >1 DATA########################
+
+cbd=chemotypes[which(chemotypes$comb_cbd>=1),]
+cbd
+
+aov_cbd1 <- aov(comb_cbd ~ origin, data=cbd)
+aov_cbd1
+summary(aov_cbd1) #significant <2e-16
+TukeyHSD(aov_cbd1) 
+
+tablecbd1=pairwise.t.test(cbd$comb_cbd, cbd$origin, p.adj = "bonf", data=cbd)
+tablecbd1 
+
+            #Denver  nida    Oakland Sacramento
+#nida       1.8e-05 -       -       -         
+#Oakland    0.2084  0.0056  -       -         
+#Sacramento 0.0502  < 2e-16 4.4e-10 -         
+#Seattle    1.0000  0.7809  1.0000  1.0000   
+
+summary(chemotypes)
+mean(subset(cbd, origin=="Denver")$comb_cbd)#10.54378
+sd(subset(cbd, origin=="Denver")$comb_cbd)#4.758266
+
+mean(subset(cbd, origin=="NIDA")$comb_cbd)#6.162679
+sd(subset(cbd, origin=="NIDA")$comb_cbd)#2.434609
+
+mean(subset(cbd, origin=="Oakland")$comb_cbd)#8.7549
+sd(subset(cbd, origin=="Oakland")$comb_cbd)#4.748197
+
+mean(subset(cbd, origin=="Sacramento")$comb_cbd)#12.83392
+sd(subset(cbd, origin=="Sacramento")$comb_cbd)#4.738631
+
+mean(subset(cbd, origin=="Seattle")$comb_cbd)#10.20071
+sd(subset(cbd, origin=="Seattle")$comb_cbd)#1.326395
+
+
+##########################################################################################################
+##########################################################################################################
+
+thc = chemotypes[which(chemotypes$comb_thc>=1),]
+thc
+
+aov_thc1 <- aov(comb_thc ~ origin, data=thc)
+aov_thc1
+summary(aov_thc1) #sign. P <2e-16 ***
+TukeyHSD(aov_thc1) #
+
+tableaov_thc1=pairwise.t.test(thc$comb_thc, thc$origin, p.adj = "bonf", data=thc)
+tableaov_thc1
+
+            #Denver  nida    Oakland Sacramento
+#nida       < 2e-16 -       -       -         
+#Oakland    0.86    < 2e-16 -       -         
+#Sacramento 1.1e-14 < 2e-16 4.9e-07 -         
+#Seattle    4.4e-16 < 2e-16 1.1e-12 7.3e-06 
+
+
+mean(subset(thc, origin=="Denver")$comb_thc)#14.60114
+sd(subset(thc, origin=="Denver")$comb_thc)#4.017477
+
+mean(subset(thc, origin=="NIDA")$comb_thc)#5.153594
+sd(subset(thc, origin=="NIDA")$comb_thc)#2.599602
+
+mean(subset(thc, origin=="Oakland")$comb_thc)#15.06432
+sd(subset(thc, origin=="Oakland")$comb_thc)#6.586893
+
+mean(subset(thc, origin=="Sacramento")$comb_thc)#16.4151
+sd(subset(thc, origin=="Sacramento")$comb_thc)#5.221449
+
+mean(subset(thc, origin=="Seattle")$comb_thc)#19.04707
+sd(subset(thc, origin=="Seattle")$comb_thc)#4.432899
+
+##########################################################################################################
+##########################################################################################################
+cbg = chemotypes[which(chemotypes$comb_cbg>=1),]
+cbg
+
+aov_comb_cbg1 <- aov(comb_cbg ~ origin, data=cbg)
+aov_comb_cbg1
+summary(aov_comb_cbg1) #nonsign. P=0.496
+#TukeyHSD(aov_comb_cbg1) 
+
+#tablecomb_cbg1=pairwise.t.test(cbg$comb_cbg, cbg$origin, p.adj = "bonf", data=cbg)
+#tablecomb_cbg1
+
+mean(subset(cbg, origin=="Denver")$comb_cbg)#1.411623
+sd(subset(cbg, origin=="Denver")$comb_cbg)#0.4217392
+
+mean(subset(cbg, origin=="NIDA")$comb_cbg)#1.44
+sd(subset(cbg, origin=="NIDA")$comb_cbg)#NA
+
+mean(subset(cbg, origin=="Oakland")$comb_cbg)#1.510096
+sd(subset(cbg, origin=="Oakland")$comb_cbg)#0.568391
+
+mean(subset(cbg, origin=="Sacramento")$comb_cbg)#1.512636
+sd(subset(cbg, origin=="Sacramento")$comb_cbg)#0.4910547
+
+mean(subset(cbg, origin=="Seattle")$comb_cbg)#1.432087
+sd(subset(cbg, origin=="Seattle")$comb_cbg)#0.4228541
+
+
+##########################################################################################################
+##########################################################################################################
+thcv = chemotypes[which(chemotypes$comb_thcv>=1),]
+thcv
+
+
+aov_comb_thcv1 <- aov(comb_thcv ~ origin, data=thcv)
+aov_comb_thcv1
+summary(aov_comb_thcv1) #sign. P 0.00119 **
+TukeyHSD(aov_comb_thcv1) # 
+
+                          #diff          lwr        upr     p adj
+#Oakland-Denver      1.24134633  0.455911959 2.02678071 0.0007849
+#Sacramento-Denver   0.56439624 -0.004059427 1.13285190 0.0522476
+#Seattle-Denver     -0.06969254 -1.704704569 1.56531949 0.9994483
+#Sacramento-Oakland -0.67695010 -1.404121026 0.05022084 0.0757360
+#Seattle-Oakland    -1.31103887 -3.007771042 0.38569330 0.1786631
+#Seattle-Sacramento -0.63408878 -2.241924199 0.97374665 0.7143477
+
+#tablecomb_thcv1=pairwise.t.test(thcv$comb_thcv, thcv$origin, p.adj = "bonf", data=thcv)
+#tablecomb_thcv1
+
+mean(subset(thcv, origin=="Denver")$comb_thcv)#1.118536
+sd(subset(thcv, origin=="Denver")$comb_thcv)#0.1296389
+
+mean(subset(thcv, origin=="NIDA")$comb_thcv)#NA
+sd(subset(thcv, origin=="NIDA")$comb_thcv)#NA
+
+mean(subset(thcv, origin=="Oakland")$comb_thcv)#2.359883
+sd(subset(thcv, origin=="Oakland")$comb_thcv)#0.6762002
+
+mean(subset(thcv, origin=="Sacramento")$comb_thcv)#1.682933
+sd(subset(thcv, origin=="Sacramento")$comb_thcv)#0.6991453
+
+mean(subset(thcv, origin=="Seattle")$comb_thcv)#1.048844
+sd(subset(thcv, origin=="Seattle")$comb_thcv)#NA
+```
+
+
+code below for Statistics on data that has THC and CBD >1%
+```{r}
+##########################################################################################################
+##########################################################################################################
+##########################################################################################################
+##########################################################################################################
+#CBN comparison
+
+aovcbn= aov(percent_cbn ~ origin, data=chemotypes)
+summary(aovcbn)
+tableaov1=pairwise.t.test(chemotypes$percent_cbn, chemotypes$origin, p.adj = "bonf", data=chemotypes)
+tableaov1
+TukeyHSD(aovcbn)
+summaryBy(percent_cbn ~ origin, data = chemotypes, FUN = list(mean), na.rm=T)
+
+```
+
